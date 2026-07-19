@@ -105,8 +105,12 @@ export async function getKakeiboData(month: string) {
     promise,
     settings,
     dailyLogs,
-    dbType: process.env.DATABASE_URL ? 'Neon Serverless PostgreSQL' : 'SQLite Local File',
-    dbPath: process.env.DATABASE_URL ? (process.env.DATABASE_URL.split('@')[1] || 'neon.tech') : 'local.db'
+    dbType: process.env.DATABASE_URL 
+      ? 'Neon Serverless PostgreSQL' 
+      : (process.env.TURSO_URL && !process.env.TURSO_URL.startsWith('file:') ? 'Turso Cloud SQLite' : 'SQLite Local File'),
+    dbPath: process.env.DATABASE_URL 
+      ? (process.env.DATABASE_URL.split('@')[1] || 'neon.tech') 
+      : (process.env.TURSO_URL ? process.env.TURSO_URL : 'local.db')
   }));
 }
 
