@@ -1,26 +1,26 @@
+import { createClient } from '@libsql/client/web';
 import { neon } from '@neondatabase/serverless';
 
 let sqliteClient: any = null;
 
-// Lazy initialize the SQLite/Turso client to prevent serverless load crashes
-async function getSqliteClient() {
+// Initialize the SQLite/Turso web client safely for serverless environments
+function getSqliteClient() {
   if (!sqliteClient) {
     const url = process.env.TURSO_URL;
     const token = process.env.TURSO_TOKEN;
 
     if (!url) {
-      // If running in serverless (Netlify/Vercel) without a database URL, raise clear warning
+      // If no remote URL is configured, fallback to local development
       if (process.env.NETLIFY || process.env.VERCEL || process.env.NODE_ENV === 'production') {
-        throw new Error('Database URL is missing. Please configure TURSO_URL or DATABASE_URL in Netlify Settings.');
+        throw new Error('DATABASE_URL or TURSO_URL is missing. Please configure your database keys in your Netlify dashboard settings.');
       }
-      // Local development fallback: load standard native client
-      const { createClient } = await import('@libsql/client');
-      sqliteClient = createClient({
-        url: 'file:local.db',
-      });
+      
+      // Local development message directing to use the Turso remote instance
+      throw new Error(
+        'SQLite file database is disabled to prevent Netlify crashes. Please add TURSO_URL and TURSO_TOKEN to your local .env.local file to connect to your Turso Cloud database.'
+      );
     } else {
-      // Remote Turso Cloud SQLite: load pure JS web client (no native bindings!)
-      const { createClient } = await import('@libsql/client/web');
+      // Remote Turso Cloud SQLite using web-safe HTTP client (no native bindings)
       sqliteClient = createClient({
         url,
         authToken: token,
@@ -65,8 +65,8 @@ export const db = {
       // Return unified rows array
       return { rows: result };
     } else {
-      // Lazy load SQLite/Turso client
-      const client = await getSqliteClient();
+      // Load SQLite/Turso web client
+      const client = getSqliteClient();
       if (typeof queryInput === 'string') {
         return client.execute(queryInput);
       } else {
