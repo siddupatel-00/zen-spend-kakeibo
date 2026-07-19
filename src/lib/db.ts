@@ -66,6 +66,23 @@ export async function initDatabase() {
     );
   `);
 
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS daily_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT UNIQUE, -- YYYY-MM-DD
+      habits TEXT -- JSON string list of checked habits
+    );
+  `);
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT DEFAULT 'Zen User',
+      currency TEXT DEFAULT '$',
+      avatar TEXT DEFAULT '🧘'
+    );
+  `);
+
   // Insert default/initial values if table is empty
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -82,7 +99,12 @@ export async function initDatabase() {
         args: [currentMonth]
       });
     }
+
+    const settingsCheck = await db.execute('SELECT id FROM settings LIMIT 1');
+    if (settingsCheck.rows.length === 0) {
+      await db.execute("INSERT INTO settings (username, currency, avatar) VALUES ('Zen User', '$', '🧘')");
+    }
   } catch (e) {
-    console.error('Failed to seed initial budget:', e);
+    console.error('Failed to seed initial budget/settings:', e);
   }
 }

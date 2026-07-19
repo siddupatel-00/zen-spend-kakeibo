@@ -57,7 +57,7 @@ export default function Header({ insuranceTerm, insuranceHealth, selectedMonth, 
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0 }}>Mindful spendings tracker</p>
         </div>
 
-        <nav style={{ display: 'flex', gap: '1rem' }}>
+        <nav style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
           <Link 
             href={`/?month=${selectedMonth}`}
             style={{ 
@@ -72,6 +72,19 @@ export default function Header({ insuranceTerm, insuranceHealth, selectedMonth, 
             Dashboard
           </Link>
           <Link 
+            href={`/daily?month=${selectedMonth}`}
+            style={{ 
+              textDecoration: 'none', 
+              color: pathname.startsWith('/daily') ? 'var(--accent-color)' : 'var(--text-secondary)', 
+              fontWeight: pathname.startsWith('/daily') ? 'bold' : 'normal',
+              fontSize: '0.95rem',
+              borderBottom: pathname.startsWith('/daily') ? '2px solid var(--accent-color)' : 'none',
+              paddingBottom: '0.2rem'
+            }}
+          >
+            Daily Tracker
+          </Link>
+          <Link 
             href={`/history?month=${selectedMonth}`}
             style={{ 
               textDecoration: 'none', 
@@ -83,6 +96,32 @@ export default function Header({ insuranceTerm, insuranceHealth, selectedMonth, 
             }}
           >
             History
+          </Link>
+          <Link 
+            href={`/belongings?month=${selectedMonth}`}
+            style={{ 
+              textDecoration: 'none', 
+              color: pathname.startsWith('/belongings') ? 'var(--accent-color)' : 'var(--text-secondary)', 
+              fontWeight: pathname.startsWith('/belongings') ? 'bold' : 'normal',
+              fontSize: '0.95rem',
+              borderBottom: pathname.startsWith('/belongings') ? '2px solid var(--accent-color)' : 'none',
+              paddingBottom: '0.2rem'
+            }}
+          >
+            Belongings
+          </Link>
+          <Link 
+            href={`/settings?month=${selectedMonth}`}
+            style={{ 
+              textDecoration: 'none', 
+              color: pathname.startsWith('/settings') ? 'var(--accent-color)' : 'var(--text-secondary)', 
+              fontWeight: pathname.startsWith('/settings') ? 'bold' : 'normal',
+              fontSize: '0.95rem',
+              borderBottom: pathname.startsWith('/settings') ? '2px solid var(--accent-color)' : 'none',
+              paddingBottom: '0.2rem'
+            }}
+          >
+            Settings
           </Link>
         </nav>
       </div>

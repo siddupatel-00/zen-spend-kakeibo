@@ -74,12 +74,37 @@ export async function getKakeiboData(month: string) {
   }
   const promise = promiseResult.rows[0];
 
+  // 6. Fetch settings
+  let settingsResult = await db.execute('SELECT * FROM settings LIMIT 1');
+  if (settingsResult.rows.length === 0) {
+    await db.execute("INSERT INTO settings (username, currency, avatar) VALUES ('Zen User', '$', '🧘')");
+    settingsResult = await db.execute('SELECT * FROM settings LIMIT 1');
+  }
+  const settings = settingsResult.rows[0];
+
+  // 7. Fetch daily logs for the month
+  const dailyLogsResult = await db.execute({
+    sql: 'SELECT * FROM daily_logs WHERE date LIKE ?',
+    args: [`${month}%`],
+  });
+  const dailyLogs = dailyLogsResult.rows.map(row => {
+    let habits: string[] = [];
+    try {
+      habits = JSON.parse(row.habits as string || '[]');
+    } catch (e) {
+      habits = [];
+    }
+    return { ...row, habits };
+  });
+
   return JSON.parse(JSON.stringify({
     budget,
     expenses,
     coolingOffItems,
     monozukuriItems,
     promise,
+    settings,
+    dailyLogs,
   }));
 }
 
@@ -224,6 +249,29 @@ export async function updatePromise(
   await db.execute({
     sql: 'INSERT INTO promises (month, promise_text, reflection) VALUES (?, ?, ?) ON CONFLICT(month) DO UPDATE SET promise_text = ?, reflection = ?',
     args: [month, promiseText, reflectionText, promiseText, reflectionText],
+  });
+  revalidatePath('/');
+}
+
+export async function updateSettings(
+  username: string,
+  currency: string,
+  avatar: string
+) {
+  await db.execute({
+    sql: 'UPDATE settings SET username = ?, currency = ?, avatar = ? WHERE id = 1',
+    args: [username, currency, avatar],
+  });
+  revalidatePath('/');
+}
+
+export async function updateDailyLog(
+  date: string,
+  habits: string[]
+) {
+  await db.execute({
+    sql: 'INSERT INTO daily_logs (date, habits) VALUES (?, ?) ON CONFLICT(date) DO UPDATE SET habits = ?',
+    args: [date, JSON.stringify(habits), JSON.stringify(habits)],
   });
   revalidatePath('/');
 }
