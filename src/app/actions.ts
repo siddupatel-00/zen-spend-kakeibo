@@ -64,7 +64,7 @@ export async function getKakeiboData(month: string) {
 
   if (promiseResult.rows.length === 0) {
     await db.execute({
-      sql: 'INSERT INTO promises (month, promise_text, reflection) VALUES (?, "", "")',
+      sql: "INSERT INTO promises (month, promise_text, reflection) VALUES (?, '', '')",
       args: [month],
     });
     promiseResult = await db.execute({
@@ -74,13 +74,13 @@ export async function getKakeiboData(month: string) {
   }
   const promise = promiseResult.rows[0];
 
-  return {
+  return JSON.parse(JSON.stringify({
     budget,
     expenses,
     coolingOffItems,
     monozukuriItems,
     promise,
-  };
+  }));
 }
 
 export async function updateBudget(
