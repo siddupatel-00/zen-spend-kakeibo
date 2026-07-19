@@ -3,25 +3,19 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
-  Trash2, 
   Clock, 
   CheckCircle, 
   XCircle, 
   Sparkles, 
-  ShieldAlert, 
-  ShieldCheck,
-  Calendar,
-  PenLine,
   TrendingDown,
   Hammer,
-  HelpCircle,
+  PenLine,
   PiggyBank
 } from 'lucide-react';
+import Header from './Header';
 import { 
   updateBudget, 
-  toggleInsurance, 
   addExpense, 
-  deleteExpense, 
   addCoolingOffItem, 
   resolveCoolingOffItem, 
   addMonozukuriItem, 
@@ -71,8 +65,8 @@ export default function KakeiboDashboard({ initialData, currentMonth }: KakeiboD
   const [reflectionText, setReflectionText] = useState(initialData.promise.reflection || '');
   const [isSavingPromise, setIsSavingPromise] = useState(false);
 
-  // Month Navigation
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  // Month State
+  const [selectedMonth] = useState(currentMonth);
 
   // Force re-renders for timers
   const [, setTick] = useState(0);
@@ -100,7 +94,7 @@ export default function KakeiboDashboard({ initialData, currentMonth }: KakeiboD
     needs: initialData.expenses.filter(e => e.category === 'needs').reduce((sum, e) => sum + e.amount, 0),
     wants: initialData.expenses.filter(e => e.category === 'wants').reduce((sum, e) => sum + e.amount, 0),
     experience: initialData.expenses.filter(e => e.category === 'experience').reduce((sum, e) => sum + e.amount, 0),
-    extra: initialData.expenses.filter(e => e.category === 'extra').reduce((sum, e) => sum + e.amount, 0),
+    unexpected: initialData.expenses.filter(e => e.category === 'unexpected' || e.category === 'extra').reduce((sum, e) => sum + e.amount, 0),
   };
 
   const spendablePool = income - savingsGoal;
@@ -129,10 +123,6 @@ export default function KakeiboDashboard({ initialData, currentMonth }: KakeiboD
     }
   };
 
-  const handleInsuranceToggle = async (type: 'term' | 'health', currentVal: number) => {
-    await toggleInsurance(selectedMonth, type, currentVal === 0);
-  };
-
   const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!expenseAmount || Number(expenseAmount) <= 0) return;
@@ -143,12 +133,6 @@ export default function KakeiboDashboard({ initialData, currentMonth }: KakeiboD
       setExpenseDate(new Date().toISOString().split('T')[0]);
     } catch (err) {
       console.error(err);
-    }
-  };
-
-  const handleDeleteExpense = async (id: number) => {
-    if (confirm('Are you sure you want to delete this expense?')) {
-      await deleteExpense(id);
     }
   };
 
@@ -205,10 +189,8 @@ export default function KakeiboDashboard({ initialData, currentMonth }: KakeiboD
     }
   };
 
-  const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const val = e.target.value;
-    setSelectedMonth(val);
-    window.location.search = `?month=${val}`;
+  const handleMonthChange = (newMonth: string) => {
+    window.location.search = `?month=${newMonth}`;
   };
 
   // Helper for labor hour calculation
@@ -218,83 +200,16 @@ export default function KakeiboDashboard({ initialData, currentMonth }: KakeiboD
     return (num / Number(hourlyRate)).toFixed(1);
   };
 
-  // Generate options for month selector (past 6 months + next 6 months)
-  const getMonthOptions = () => {
-    const options = [];
-    const now = new Date();
-    for (let i = -6; i <= 6; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-      const str = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const label = d.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
-      options.push({ value: str, label });
-    }
-    return options;
-  };
-
   return (
     <div style={{ padding: '2rem 1rem', maxWidth: '1400px', margin: '0 auto' }}>
       
-      {/* Header Panel */}
-      <header className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem' }}>
-        <div>
-          <h1 style={{ fontSize: '2.25rem', background: 'linear-gradient(to right, #a855f7, #6366f1)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            Kakeibo 家計簿 <Sparkles style={{ color: 'var(--brand-color)' }} />
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Mindful financial habit & spending tracker</p>
-        </div>
-
-        {/* Month Selector */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <Calendar style={{ color: 'var(--brand-color)' }} size={20} />
-          <select 
-            value={selectedMonth} 
-            onChange={handleMonthChange}
-            style={{ width: '220px', background: 'rgba(255,255,255,0.06)' }}
-          >
-            {getMonthOptions().map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Financial Protection Shield */}
-        <div className="glass-panel" style={{ padding: '0.75rem 1.25rem', border: '1px solid rgba(255, 255, 255, 0.05)', display: 'flex', alignItems: 'center', gap: '1rem', borderRadius: '12px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Financial Protection Checklist</span>
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', cursor: 'pointer' }}>
-                <input 
-                  type="checkbox" 
-                  checked={initialData.budget.insurance_term === 1}
-                  onChange={() => handleInsuranceToggle('term', initialData.budget.insurance_term)}
-                />
-                Term Insurance
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', cursor: 'pointer' }}>
-                <input 
-                  type="checkbox" 
-                  checked={initialData.budget.insurance_health === 1}
-                  onChange={() => handleInsuranceToggle('health', initialData.budget.insurance_health)}
-                />
-                Health Insurance
-              </label>
-            </div>
-          </div>
-          <div>
-            {initialData.budget.insurance_term === 1 && initialData.budget.insurance_health === 1 ? (
-              <div className="tooltip" style={{ display: 'flex', alignItems: 'center' }}>
-                <ShieldCheck style={{ color: 'var(--success-color)' }} size={32} />
-                <span className="tooltiptext">Your foundation is secure! Term & Health insurance coverages protect your household.</span>
-              </div>
-            ) : (
-              <div className="tooltip" style={{ display: 'flex', alignItems: 'center' }}>
-                <ShieldAlert className="pulse-indicator alert" style={{ color: 'var(--warning-color)', borderRadius: '50%' }} size={32} />
-                <span className="tooltiptext" style={{ width: '220px', left: '-10px' }}>⚠️ Warning: Complete your insurance coverages. Protection is essential in the Kakeibo method.</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+      {/* Shared Header component */}
+      <Header 
+        insuranceTerm={initialData.budget.insurance_term || 0}
+        insuranceHealth={initialData.budget.insurance_health || 0}
+        selectedMonth={selectedMonth}
+        onMonthChange={handleMonthChange}
+      />
 
       {/* Main Grid */}
       <div className="dashboard-grid">
@@ -305,7 +220,7 @@ export default function KakeiboDashboard({ initialData, currentMonth }: KakeiboD
           {/* Dashboard Summary Numbers */}
           <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
             <div className="glass-panel" style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', right: '-10px', bottom: '-15px', opacity: 0.05, color: '#fff' }}>
+              <div style={{ position: 'absolute', right: '-10px', bottom: '-15px', opacity: 0.05, color: 'var(--text-primary)' }}>
                 <PiggyBank size={80} />
               </div>
               <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Monthly Spending Pool</span>
@@ -326,7 +241,7 @@ export default function KakeiboDashboard({ initialData, currentMonth }: KakeiboD
                 <div className="progress-bar-track" style={{ height: '6px' }}>
                   <div className="progress-bar-fill" style={{ 
                     width: `${Math.min(spentPercent, 100)}%`, 
-                    backgroundColor: spentPercent > 100 ? 'var(--danger-color)' : 'var(--brand-color)'
+                    backgroundColor: spentPercent > 100 ? 'var(--danger-color)' : 'var(--accent-color)'
                   }}></div>
                 </div>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{spentPercent.toFixed(0)}%</span>
@@ -368,7 +283,7 @@ export default function KakeiboDashboard({ initialData, currentMonth }: KakeiboD
                 borderLeft: '4px solid var(--color-wants)', 
                 background: wantsEnvelopeExceeded ? 'rgba(244, 63, 94, 0.1)' : 'rgba(244, 63, 94, 0.05)',
                 borderWidth: wantsEnvelopeExceeded ? '1px 1px 1px 4px' : '1px',
-                borderColor: wantsEnvelopeExceeded ? 'rgba(244, 63, 94, 0.3)' : 'var(--glass-border)'
+                borderColor: wantsEnvelopeExceeded ? 'rgba(244, 63, 94, 0.3)' : 'var(--border-color)'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 style={{ fontSize: '1rem' }}>Wants (Optional)</h3>
@@ -380,7 +295,7 @@ export default function KakeiboDashboard({ initialData, currentMonth }: KakeiboD
                 </div>
                 <h4 style={{ fontSize: '1.5rem', margin: '0.5rem 0' }}>${spentByCat.wants.toLocaleString()}</h4>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  Envelope Limit: <strong style={{ color: '#fff' }}>${wantsLimit}</strong>
+                  Envelope Limit: <strong style={{ color: 'var(--text-primary)' }}>${wantsLimit}</strong>
                 </p>
                 {wantsLimit > 0 && (
                   <div className="progress-bar-track" style={{ height: '4px', marginTop: '0.5rem' }}>
@@ -402,13 +317,13 @@ export default function KakeiboDashboard({ initialData, currentMonth }: KakeiboD
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Books, courses, museums, travel.</p>
               </div>
 
-              {/* Extra card */}
-              <div className="glass-panel" style={{ padding: '1.25rem', borderLeft: '4px solid var(--color-extra)', background: 'rgba(249, 115, 22, 0.05)' }}>
+              {/* Unexpected card */}
+              <div className="glass-panel" style={{ padding: '1.25rem', borderLeft: '4px solid var(--color-unexpected)', background: 'rgba(234, 179, 8, 0.05)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={{ fontSize: '1rem' }}>Extra (Unexpected)</h3>
-                  <span style={{ fontSize: '0.75rem', background: 'rgba(249, 115, 22, 0.2)', padding: '0.2rem 0.5rem', borderRadius: '4px', color: 'var(--color-extra)' }}>Emergency</span>
+                  <h3 style={{ fontSize: '1rem' }}>Unexpected (Extra)</h3>
+                  <span style={{ fontSize: '0.75rem', background: 'rgba(234, 179, 8, 0.2)', padding: '0.2rem 0.5rem', borderRadius: '4px', color: 'var(--color-unexpected)' }}>Emergency</span>
                 </div>
-                <h4 style={{ fontSize: '1.5rem', margin: '0.5rem 0' }}>${spentByCat.extra.toLocaleString()}</h4>
+                <h4 style={{ fontSize: '1.5rem', margin: '0.5rem 0' }}>${spentByCat.unexpected.toLocaleString()}</h4>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Repairs, emergency medical, etc.</p>
               </div>
 
@@ -432,7 +347,7 @@ export default function KakeiboDashboard({ initialData, currentMonth }: KakeiboD
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
               {/* Form to Add Cooling-off Item */}
-              <form onSubmit={handleAddCoolingItem} className="glass-panel" style={{ padding: '1.25rem', border: '1px dashed var(--glass-border)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'end' }}>
+              <form onSubmit={handleAddCoolingItem} className="glass-panel" style={{ padding: '1.25rem', border: '1px dashed var(--border-color)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'end' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Item Name / Link</label>
                   <input 
@@ -509,7 +424,7 @@ export default function KakeiboDashboard({ initialData, currentMonth }: KakeiboD
                           alignItems: 'center', 
                           flexWrap: 'wrap', 
                           gap: '1rem',
-                          border: item.status !== 'pending' ? '1px solid rgba(255,255,255,0.02)' : '1px solid var(--glass-border)',
+                          border: item.status !== 'pending' ? '1px solid rgba(128,128,128,0.02)' : '1px solid var(--border-color)',
                           opacity: item.status !== 'pending' ? 0.5 : 1
                         }}
                       >
@@ -588,7 +503,7 @@ export default function KakeiboDashboard({ initialData, currentMonth }: KakeiboD
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
               {/* Add item form */}
-              <form onSubmit={handleAddMono} className="glass-panel" style={{ padding: '1.25rem', border: '1px dashed var(--glass-border)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'end' }}>
+              <form onSubmit={handleAddMono} className="glass-panel" style={{ padding: '1.25rem', border: '1px dashed var(--border-color)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'end' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Item Name</label>
                   <input 
@@ -630,16 +545,16 @@ export default function KakeiboDashboard({ initialData, currentMonth }: KakeiboD
                     <div key={item.id} className="glass-panel" style={{ padding: '1.25rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                         <div>
-                          <strong style={{ fontSize: '1.1rem', color: '#fff' }}>{item.name}</strong>
+                          <strong style={{ fontSize: '1.1rem', color: 'var(--text-primary)' }}>{item.name}</strong>
                           <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{item.description || 'No description'}</p>
                           <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Acquired: {new Date(item.purchase_date).toLocaleDateString()}</span>
                         </div>
                       </div>
 
                       {/* Care logs section */}
-                      <div style={{ marginTop: '1rem', borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '0.75rem' }}>
+                      <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--brand-color)' }}>Maintenance Log</span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--accent-color)' }}>Maintenance Log</span>
                           <button 
                             onClick={() => {
                               setActiveCareItemId(activeCareItemId === item.id ? null : item.id);
@@ -700,7 +615,7 @@ export default function KakeiboDashboard({ initialData, currentMonth }: KakeiboD
           {/* Budget Config Panel */}
           <section className="glass-panel" style={{ padding: '1.5rem' }}>
             <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <PiggyBank style={{ color: 'var(--brand-color)' }} /> Month Settings
+              <PiggyBank style={{ color: 'var(--accent-color)' }} /> Month Settings
             </h3>
             
             <form onSubmit={handleBudgetSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -721,7 +636,7 @@ export default function KakeiboDashboard({ initialData, currentMonth }: KakeiboD
                   onChange={e => setSavingsGoal(Number(e.target.value))}
                 />
                 {income > 0 && (
-                  <span style={{ fontSize: '0.7rem', color: 'var(--success-color)', marginTop: '0.2rem', display: 'block' }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--accent-color)', marginTop: '0.2rem', display: 'block' }}>
                     Saving {savingsPercent.toFixed(0)}% of income (Artificial Scarcity)
                   </span>
                 )}
@@ -761,7 +676,7 @@ export default function KakeiboDashboard({ initialData, currentMonth }: KakeiboD
           {/* Expense Logger Form */}
           <section className="glass-panel" style={{ padding: '1.5rem' }}>
             <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Plus style={{ color: 'var(--success-color)' }} /> Log Spending
+              <Plus style={{ color: 'var(--accent-color)' }} /> Log Spending
             </h3>
             
             <form onSubmit={handleAddExpense} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -790,7 +705,7 @@ export default function KakeiboDashboard({ initialData, currentMonth }: KakeiboD
                   <option value="needs">Needs (Essential utilities/groceries)</option>
                   <option value="wants">Wants (Discretionary/comforts)</option>
                   <option value="experience">Experience & Growth (Books, travel, courses)</option>
-                  <option value="extra">Extra (Unplanned emergencies)</option>
+                  <option value="unexpected">Unexpected (Unplanned emergencies)</option>
                 </select>
               </div>
 
@@ -815,7 +730,7 @@ export default function KakeiboDashboard({ initialData, currentMonth }: KakeiboD
                 />
               </div>
 
-              <button type="submit" className="btn btn-primary" style={{ background: 'linear-gradient(135deg, var(--success-color), #059669)', boxShadow: '0 4px 15px rgba(16, 185, 129, 0.2)' }}>
+              <button type="submit" className="btn btn-primary" style={{ background: 'linear-gradient(135deg, var(--accent-color), var(--accent-hover))', boxShadow: '0 4px 15px var(--accent-glow)' }}>
                 Record Purchase
               </button>
             </form>
@@ -824,7 +739,7 @@ export default function KakeiboDashboard({ initialData, currentMonth }: KakeiboD
           {/* Monthly Promise & Reflection Corner */}
           <section className="glass-panel" style={{ padding: '1.5rem' }}>
             <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <PenLine style={{ color: 'var(--brand-color)' }} /> Promise & Reflection
+              <PenLine style={{ color: 'var(--accent-color)' }} /> Promise & Reflection
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: '1rem' }}>
               Write your focus promise at the start of the month. Reflect on how your habits did at the end.
@@ -855,61 +770,6 @@ export default function KakeiboDashboard({ initialData, currentMonth }: KakeiboD
                 {isSavingPromise ? 'Saving...' : 'Save Promise & Reflection'}
               </button>
             </form>
-          </section>
-
-          {/* Ledger History */}
-          <section className="glass-panel" style={{ padding: '1.5rem', maxHeight: '400px', overflowY: 'auto' }}>
-            <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>Ledger for {selectedMonth}</h3>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {initialData.expenses.length === 0 ? (
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center' }}>No expenses recorded this month.</p>
-              ) : (
-                initialData.expenses.map(exp => (
-                  <div 
-                    key={exp.id} 
-                    style={{ 
-                      padding: '0.75rem', 
-                      background: 'rgba(255, 255, 255, 0.02)', 
-                      border: '1px solid var(--glass-border)', 
-                      borderRadius: '8px', 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center' 
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ 
-                          width: '8px', 
-                          height: '8px', 
-                          borderRadius: '50%', 
-                          background: exp.category === 'needs' ? 'var(--color-needs)' :
-                                      exp.category === 'wants' ? 'var(--color-wants)' :
-                                      exp.category === 'experience' ? 'var(--color-experience)' :
-                                      'var(--color-extra)' 
-                        }} />
-                        <strong style={{ fontSize: '0.9rem' }}>{exp.description}</strong>
-                      </div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
-                        {exp.date} • {exp.category.toUpperCase()}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <strong style={{ fontSize: '1rem' }}>${exp.amount}</strong>
-                      <button 
-                        onClick={() => handleDeleteExpense(exp.id)}
-                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-                        className="tooltip"
-                      >
-                        <Trash2 size={14} style={{ color: 'var(--danger-color)', opacity: 0.7 }} />
-                        <span className="tooltiptext" style={{ width: '80px', marginLeft: '-40px' }}>Delete</span>
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
           </section>
 
         </div>
