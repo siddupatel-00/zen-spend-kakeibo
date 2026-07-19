@@ -63,7 +63,7 @@ export async function initDatabase() {
   // Create tables using execute
   await db.execute(`
     CREATE TABLE IF NOT EXISTS budgets (
-      id SERIAL PRIMARY KEY,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
       month TEXT UNIQUE,
       income REAL DEFAULT 0,
       savings_goal REAL DEFAULT 0,
@@ -76,7 +76,7 @@ export async function initDatabase() {
 
   await db.execute(`
     CREATE TABLE IF NOT EXISTS expenses (
-      id SERIAL PRIMARY KEY,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
       amount REAL,
       category TEXT,
       description TEXT,
@@ -86,7 +86,7 @@ export async function initDatabase() {
 
   await db.execute(`
     CREATE TABLE IF NOT EXISTS cooling_off_items (
-      id SERIAL PRIMARY KEY,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT,
       cost REAL,
       added_date TEXT,
@@ -97,7 +97,7 @@ export async function initDatabase() {
 
   await db.execute(`
     CREATE TABLE IF NOT EXISTS monozukuri_items (
-      id SERIAL PRIMARY KEY,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT,
       description TEXT,
       purchase_date TEXT,
@@ -107,7 +107,7 @@ export async function initDatabase() {
 
   await db.execute(`
     CREATE TABLE IF NOT EXISTS promises (
-      id SERIAL PRIMARY KEY,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
       month TEXT UNIQUE,
       promise_text TEXT,
       reflection TEXT
@@ -116,7 +116,7 @@ export async function initDatabase() {
 
   await db.execute(`
     CREATE TABLE IF NOT EXISTS daily_logs (
-      id SERIAL PRIMARY KEY,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
       date TEXT UNIQUE,
       habits TEXT
     );
@@ -124,7 +124,7 @@ export async function initDatabase() {
 
   await db.execute(`
     CREATE TABLE IF NOT EXISTS settings (
-      id SERIAL PRIMARY KEY,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT DEFAULT 'Hani Motoko',
       currency TEXT DEFAULT '$',
       avatar TEXT DEFAULT '🧘'
