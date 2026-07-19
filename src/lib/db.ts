@@ -1,10 +1,9 @@
-import { createClient } from '@libsql/client';
 import { neon } from '@neondatabase/serverless';
 
 let sqliteClient: any = null;
 
 // Lazy initialize the SQLite/Turso client to prevent serverless load crashes
-function getSqliteClient() {
+async function getSqliteClient() {
   if (!sqliteClient) {
     const url = process.env.TURSO_URL;
     const token = process.env.TURSO_TOKEN;
@@ -14,12 +13,14 @@ function getSqliteClient() {
       if (process.env.NETLIFY || process.env.VERCEL || process.env.NODE_ENV === 'production') {
         throw new Error('Database URL is missing. Please configure TURSO_URL or DATABASE_URL in Netlify Settings.');
       }
-      // Local development fallback
+      // Local development fallback: load standard native client
+      const { createClient } = await import('@libsql/client');
       sqliteClient = createClient({
         url: 'file:local.db',
       });
     } else {
-      // Remote Turso Cloud SQLite
+      // Remote Turso Cloud SQLite: load pure JS web client (no native bindings!)
+      const { createClient } = await import('@libsql/client/web');
       sqliteClient = createClient({
         url,
         authToken: token,
@@ -65,7 +66,7 @@ export const db = {
       return { rows: result };
     } else {
       // Lazy load SQLite/Turso client
-      const client = getSqliteClient();
+      const client = await getSqliteClient();
       if (typeof queryInput === 'string') {
         return client.execute(queryInput);
       } else {
