@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Hammer, Heart, Sparkles } from 'lucide-react';
+import { Plus, Hammer, Heart, Sparkles, Calendar } from 'lucide-react';
 import Header from '../Header';
 import { addMonozukuriItem, addCareLog } from '../actions';
 
@@ -9,6 +9,7 @@ interface BelongingsDashboardProps {
   initialData: {
     budget: any;
     monozukuriItems: any[];
+    settings: any;
   };
   currentMonth: string;
 }
@@ -52,85 +53,95 @@ export default function BelongingsDashboard({ initialData, currentMonth }: Belon
   };
 
   return (
-    <div style={{ padding: '2rem 1rem', maxWidth: '1400px', margin: '0 auto' }}>
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
       
       <Header 
         insuranceTerm={initialData.budget.insurance_term || 0}
         insuranceHealth={initialData.budget.insurance_health || 0}
         selectedMonth={selectedMonth}
         onMonthChange={handleMonthChange}
+        currency={initialData.settings.currency}
+        avatar={initialData.settings.avatar}
+        username={initialData.settings.username}
       />
 
-      <div className="dashboard-grid">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Left Side: Items Catalog */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div className="lg:col-span-2 space-y-6">
           
-          <section className="glass-panel" style={{ padding: '2rem' }}>
-            <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Hammer style={{ color: 'var(--color-experience)' }} /> Monozukuri 物作り (Cherished Items)
+          <section className="glass-panel rounded-2xl p-6 bg-slate-900/20 border-white/5 space-y-4">
+            <h2 className="text-xl font-bold tracking-tight text-primary flex items-center gap-2">
+              <Hammer style={{ color: 'var(--color-experience)' }} /> Monozukuri 物作り
             </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-              Kakeibo promotes taking care of your existing belongings instead of constantly replacing them. Here you can catalog your items and track their maintenance.
-            </p>
+            
+            {/* Philosophical blurb */}
+            <div className="p-4 rounded-xl bg-brand/5 border border-brand/10 text-xs leading-relaxed text-secondary space-y-2">
+              <span className="font-bold text-primary flex items-center gap-1">
+                <Sparkles size={14} className="text-brand" /> The Art of Caring (物作り)
+              </span>
+              <p>
+                In Japan, *Monozukuri* is not just about making things—it is about respecting the craftsmanship behind the objects we own. Kakeibo emphasizes caring for your current possessions through regular maintenance. By respecting what you already have, you naturally slow down the urge to replace items with new, mindless purchases.
+              </p>
+            </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
               {initialData.monozukuriItems.length === 0 ? (
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', gridColumn: '1 / -1', padding: '3rem' }}>
-                  No cherished belongings cataloged yet. Use the form on the right to start!
+                <p className="text-xs text-muted text-center py-12 md:col-span-2">
+                  No belongings cataloged. Set up your cherished belongings in the form on the right!
                 </p>
               ) : (
                 initialData.monozukuriItems.map(item => (
-                  <div key={item.id} className="glass-panel" style={{ padding: '1.5rem' }}>
+                  <div key={item.id} className="glass-panel rounded-xl p-4 bg-slate-900/40 border-white/5 hover:border-white/10 flex flex-col justify-between space-y-4">
                     <div>
-                      <strong style={{ fontSize: '1.2rem', color: 'var(--text-primary)' }}>{item.name}</strong>
-                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.25rem 0' }}>{item.description || 'No description'}</p>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Acquired: {new Date(item.purchase_date).toLocaleDateString()}</span>
+                      <strong className="text-sm text-primary font-bold">{item.name}</strong>
+                      <p className="text-xs text-secondary mt-1">{item.description || 'No description'}</p>
+                      <span className="text-[10px] text-muted mt-1.5 flex items-center gap-1">
+                        <Calendar size={10} /> Acquired: {new Date(item.purchase_date).toLocaleDateString()}
+                      </span>
                     </div>
 
                     {/* Care logs section */}
-                    <div style={{ marginTop: '1.25rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--accent-color)' }}>Maintenance Log</span>
+                    <div className="border-t border-white/5 pt-3 mt-2">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-[10px] font-bold text-brand uppercase tracking-wider">Maintenance Log</span>
                         <button 
                           onClick={() => {
                             setActiveCareItemId(activeCareItemId === item.id ? null : item.id);
                             setCareLogText('');
                           }}
-                          className="btn btn-secondary"
-                          style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem' }}
+                          className="btn btn-secondary px-2 py-0.5 rounded text-[10px] border-white/5"
                         >
                           {activeCareItemId === item.id ? 'Cancel' : '+ Add Log'}
                         </button>
                       </div>
 
                       {activeCareItemId === item.id && (
-                        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                        <div className="flex gap-2 mb-3">
                           <input 
                             type="text" 
-                            placeholder="e.g. Polished leather, wiped keyboard"
+                            placeholder="e.g. Polished leather, wiped computer fan"
                             value={careLogText}
                             onChange={e => setCareLogText(e.target.value)}
-                            style={{ padding: '0.4rem', fontSize: '0.8rem' }}
+                            className="text-xs p-1.5 bg-slate-900"
                             autoFocus
                           />
                           <button 
                             onClick={() => handleAddCare(item.id)}
-                            className="btn btn-primary"
-                            style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                            className="btn btn-primary py-1 px-3 text-xs"
                           >
                             Save
                           </button>
                         </div>
                       )}
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: '120px', overflowY: 'auto' }}>
+                      <div className="flex flex-col gap-1.5 max-h-24 overflow-y-auto pr-1">
                         {item.care_log.length === 0 ? (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>No logs yet. Take care of this object!</span>
+                          <span className="text-[10px] text-muted">No maintenance events recorded. Log your care!</span>
                         ) : (
                           item.care_log.map((log: string, idx: number) => (
-                            <div key={idx} style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.5rem' }}>
-                              <span style={{ color: 'var(--text-muted)' }}>•</span>
+                            <div key={idx} className="text-[10px] text-secondary flex gap-1.5 leading-normal">
+                              <span className="text-brand">•</span>
                               <span>{log}</span>
                             </div>
                           ))
@@ -146,56 +157,61 @@ export default function BelongingsDashboard({ initialData, currentMonth }: Belon
         </div>
 
         {/* Right Side: Add Item Form & Stats */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div className="space-y-6">
           
-          <section className="glass-panel" style={{ padding: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Plus style={{ color: 'var(--accent-color)' }} /> Add Cherished Item
+          <section className="glass-panel rounded-2xl p-5 bg-slate-900/20 border-white/5 space-y-4">
+            <h3 className="text-sm font-bold text-secondary uppercase tracking-wider flex items-center gap-2">
+              <Plus size={16} className="text-brand" /> Catalog Cherished Item
             </h3>
             
-            <form onSubmit={handleAddMono} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <form onSubmit={handleAddMono} className="space-y-4">
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Item Name</label>
+                <label className="text-[10px] text-secondary font-bold uppercase tracking-wider block mb-1">Item Name</label>
                 <input 
                   type="text" 
-                  placeholder="e.g. Leather wallet, Laptop, Coffee machine" 
+                  placeholder="e.g. Mechanical Keyboard, Leather Wallet" 
                   value={monoName}
                   onChange={e => setMonoName(e.target.value)}
+                  className="text-sm"
                   required
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Description</label>
+                <label className="text-[10px] text-secondary font-bold uppercase tracking-wider block mb-1">Description / Details</label>
                 <textarea 
-                  rows={2}
-                  placeholder="Specific details, price, or why it matters to you" 
+                  rows={3}
+                  placeholder="e.g. Handcrafted, high-value, or items you frequently use." 
                   value={monoDesc}
                   onChange={e => setMonoDesc(e.target.value)}
+                  className="text-xs"
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Purchase Date</label>
+                <label className="text-[10px] text-secondary font-bold uppercase tracking-wider block mb-1">Purchase Date</label>
                 <input 
                   type="date" 
                   value={monoDate}
                   onChange={e => setMonoDate(e.target.value)}
+                  className="text-sm"
                 />
               </div>
 
-              <button type="submit" className="btn btn-primary" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                <Plus size={16} /> Catalog Belonging
+              <button type="submit" className="w-full btn btn-primary py-2.5 flex items-center justify-center gap-1.5 text-sm">
+                <Plus size={16} /> Catalog Item
               </button>
             </form>
           </section>
 
-          {/* Stats card */}
-          <section className="glass-panel" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <Heart style={{ color: 'var(--color-wants)' }} size={32} />
+          {/* Maintenance Count Stats Card */}
+          <section className="glass-panel rounded-2xl p-5 bg-slate-900/20 border-white/5 flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-brand/15 text-brand">
+              <Heart size={24} />
+            </div>
             <div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>Total Belongings Maintained</span>
-              <strong style={{ fontSize: '1.5rem', color: 'var(--text-primary)' }}>{initialData.monozukuriItems.length} items</strong>
+              <span className="text-[10px] text-secondary font-bold uppercase tracking-wider block">Belongings Logged</span>
+              <strong className="text-xl font-extrabold text-primary">{initialData.monozukuriItems.length} Cherished Items</strong>
             </div>
           </section>
 
