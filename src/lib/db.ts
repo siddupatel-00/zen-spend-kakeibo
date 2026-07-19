@@ -1,66 +1,114 @@
 import { createClient } from '@libsql/client';
+import { neon } from '@neondatabase/serverless';
 
 const url = process.env.TURSO_URL || 'file:local.db';
 const authToken = process.env.TURSO_TOKEN;
 
-export const db = createClient({
+// SQLite Client (Local fallback)
+const sqliteClient = createClient({
   url,
   authToken,
 });
 
+// Unified Database execution wrapper supporting SQLite and Neon PostgreSQL
+export const db = {
+  execute: async (queryInput: { sql: string; args?: any[] } | string): Promise<{ rows: any[] }> => {
+    let sql: string;
+    let args: any[] = [];
+    
+    if (typeof queryInput === 'string') {
+      sql = queryInput;
+    } else {
+      sql = queryInput.sql;
+      args = queryInput.args || [];
+    }
+
+    if (process.env.DATABASE_URL) {
+      // Connect to Neon PostgreSQL
+      let pgSql = sql;
+
+      // 1. Convert SQLite INTEGER PRIMARY KEY AUTOINCREMENT to PostgreSQL SERIAL PRIMARY KEY
+      if (pgSql.toLowerCase().includes('create table')) {
+        pgSql = pgSql.replace(/integer primary key autoincrement/gi, 'SERIAL PRIMARY KEY');
+      }
+
+      // 2. Convert SQLite "?" placeholders to PostgreSQL "$1", "$2", etc. placeholders
+      let count = 1;
+      while (pgSql.includes('?')) {
+        pgSql = pgSql.replace('?', `$${count}`);
+        count++;
+      }
+
+      const sqlClient = neon(process.env.DATABASE_URL);
+      const result = await (sqlClient as any)(pgSql, args);
+
+      // Return unified rows array
+      return { rows: result };
+    } else {
+      // Fallback to SQLite local file execution
+      if (typeof queryInput === 'string') {
+        return sqliteClient.execute(queryInput);
+      } else {
+        return sqliteClient.execute({ sql, args });
+      }
+    }
+  }
+};
+
 /**
- * Initialize database tables and seed demo data for hackathon judges.
+ * Initialize database tables and seed demo data.
+ * Runs on app load. Compatible with SQLite and PostgreSQL.
  */
 export async function initDatabase() {
-  // 1. Create Tables
+  // Create tables using execute
   await db.execute(`
     CREATE TABLE IF NOT EXISTS budgets (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      month TEXT UNIQUE, -- YYYY-MM
+      id SERIAL PRIMARY KEY,
+      month TEXT UNIQUE,
       income REAL DEFAULT 0,
       savings_goal REAL DEFAULT 0,
       hourly_rate REAL DEFAULT 0,
-      insurance_term INTEGER DEFAULT 0, -- boolean 0/1
-      insurance_health INTEGER DEFAULT 0, -- boolean 0/1
+      insurance_term INTEGER DEFAULT 0,
+      insurance_health INTEGER DEFAULT 0,
       wants_limit REAL DEFAULT 0
     );
   `);
 
   await db.execute(`
     CREATE TABLE IF NOT EXISTS expenses (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       amount REAL,
-      category TEXT, -- 'needs', 'wants', 'experience', 'unexpected'
+      category TEXT,
       description TEXT,
-      date TEXT -- YYYY-MM-DD
+      date TEXT
     );
   `);
 
   await db.execute(`
     CREATE TABLE IF NOT EXISTS cooling_off_items (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       name TEXT,
       cost REAL,
-      added_date TEXT, -- ISO string
+      added_date TEXT,
       duration_hours INTEGER,
-      status TEXT -- 'pending', 'purchased', 'dismissed'
+      status TEXT
     );
   `);
 
   await db.execute(`
     CREATE TABLE IF NOT EXISTS monozukuri_items (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       name TEXT,
       description TEXT,
       purchase_date TEXT,
-      care_log TEXT -- JSON string array
+      care_log TEXT
     );
   `);
 
   await db.execute(`
     CREATE TABLE IF NOT EXISTS promises (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      month TEXT UNIQUE, -- YYYY-MM
+      id SERIAL PRIMARY KEY,
+      month TEXT UNIQUE,
       promise_text TEXT,
       reflection TEXT
     );
@@ -68,27 +116,26 @@ export async function initDatabase() {
 
   await db.execute(`
     CREATE TABLE IF NOT EXISTS daily_logs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      date TEXT UNIQUE, -- YYYY-MM-DD
-      habits TEXT -- JSON string list of checked habits
+      id SERIAL PRIMARY KEY,
+      date TEXT UNIQUE,
+      habits TEXT
     );
   `);
 
   await db.execute(`
     CREATE TABLE IF NOT EXISTS settings (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       username TEXT DEFAULT 'Hani Motoko',
       currency TEXT DEFAULT '$',
       avatar TEXT DEFAULT '🧘'
     );
   `);
 
-  // 2. Seeding logic
+  // Seeding logic
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
   try {
-    // A. Seed settings
     const settingsCheck = await db.execute('SELECT id FROM settings LIMIT 1');
     if (settingsCheck.rows.length === 0) {
       await db.execute(`
@@ -97,7 +144,6 @@ export async function initDatabase() {
       `);
     }
 
-    // B. Seed default budgets
     const budgetCheck = await db.execute({
       sql: 'SELECT id FROM budgets WHERE month = ?',
       args: [currentMonth]
@@ -110,7 +156,6 @@ export async function initDatabase() {
       });
     }
 
-    // C. Seed default promises
     const promiseCheck = await db.execute({
       sql: 'SELECT id FROM promises WHERE month = ?',
       args: [currentMonth]
@@ -123,7 +168,6 @@ export async function initDatabase() {
       });
     }
 
-    // D. Seed expenses (2-3 weeks of data)
     const expenseCheck = await db.execute('SELECT id FROM expenses LIMIT 1');
     if (expenseCheck.rows.length === 0) {
       const year = now.getFullYear();
@@ -150,10 +194,8 @@ export async function initDatabase() {
       }
     }
 
-    // E. Seed cooling off items
     const coolingCheck = await db.execute('SELECT id FROM cooling_off_items LIMIT 1');
     if (coolingCheck.rows.length === 0) {
-      // 1. A pending cooling off item (added 10h ago, active timer)
       const date1 = new Date();
       date1.setHours(date1.getHours() - 10);
       await db.execute({
@@ -161,7 +203,6 @@ export async function initDatabase() {
         args: ['Wireless Noise-cancelling Headphones', 299, date1.toISOString(), 48, 'pending']
       });
 
-      // 2. An expired cooling off item (added 72h ago, ready to decide)
       const date2 = new Date();
       date2.setHours(date2.getHours() - 72);
       await db.execute({
@@ -169,7 +210,6 @@ export async function initDatabase() {
         args: ['Designer Mechanical Keyboard', 180, date2.toISOString(), 24, 'pending']
       });
 
-      // 3. A dismissed cooling off item (saved money!)
       const date3 = new Date();
       date3.setHours(date3.getHours() - 120);
       await db.execute({
@@ -178,7 +218,6 @@ export async function initDatabase() {
       });
     }
 
-    // F. Seed monozukuri items
     const monoCheck = await db.execute('SELECT id FROM monozukuri_items LIMIT 1');
     if (monoCheck.rows.length === 0) {
       await db.execute({
@@ -208,7 +247,6 @@ export async function initDatabase() {
       });
     }
 
-    // G. Seed daily logs (a few checklist check-ins)
     const logsCheck = await db.execute('SELECT id FROM daily_logs LIMIT 1');
     if (logsCheck.rows.length === 0) {
       const year = now.getFullYear();
@@ -217,7 +255,7 @@ export async function initDatabase() {
       const seedLogs = [
         { day: '15', habits: ['budget', 'no_spend', 'cooking'] },
         { day: '16', habits: ['budget', 'monozukuri', 'growth', 'cooking'] },
-        { day: '17', habits: ['budget', 'no_spend', 'monozukuri', 'growth', 'cooking'] }, // 5/5 complete!
+        { day: '17', habits: ['budget', 'no_spend', 'monozukuri', 'growth', 'cooking'] },
         { day: '18', habits: ['budget', 'growth'] },
         { day: '19', habits: ['budget', 'no_spend', 'cooking'] }
       ];

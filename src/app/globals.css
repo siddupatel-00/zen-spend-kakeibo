@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@source "./**/*.{ts,tsx}";
+
 
 @theme {
   --color-brand: #0d9488;

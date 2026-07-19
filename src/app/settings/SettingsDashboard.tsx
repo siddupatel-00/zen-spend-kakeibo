@@ -9,6 +9,8 @@ interface SettingsDashboardProps {
   initialData: {
     budget: any;
     settings: any;
+    dbType?: string;
+    dbPath?: string;
   };
   currentMonth: string;
 }
@@ -218,16 +220,16 @@ export default function SettingsDashboard({ initialData, currentMonth }: Setting
             </h3>
             <div className="text-xs text-secondary space-y-2 leading-relaxed">
               <div>
-                <strong>Database Client:</strong> LibSQL SQLite Local File client (libsql-serverless fallback)
+                <strong>Database Client:</strong> {initialData.dbType || 'SQLite Local File'}
               </div>
               <div>
-                <strong>Driver Path:</strong> `@libsql/client/sqlite`
+                <strong>Driver Protocol:</strong> {initialData.dbType?.includes('PostgreSQL') ? '@neondatabase/serverless' : '@libsql/client/sqlite'}
               </div>
               <div className="font-mono bg-slate-950/40 p-2.5 rounded-lg border border-white/5 overflow-x-auto text-[10px]">
-                {"sqlite3://data.db -> file:/Users/siddu/.gemini/antigravity/scratch/kakeibo-tracker/local.db"}
+                {initialData.dbPath || 'local.db'}
               </div>
               <div className="flex items-center gap-1.5 text-emerald-400 font-bold mt-1">
-                <ShieldCheck size={14} /> Local Database Active & Persisted
+                <ShieldCheck size={14} /> Database Connection Active
               </div>
             </div>
           </section>

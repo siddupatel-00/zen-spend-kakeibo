@@ -105,6 +105,8 @@ export async function getKakeiboData(month: string) {
     promise,
     settings,
     dailyLogs,
+    dbType: process.env.DATABASE_URL ? 'Neon Serverless PostgreSQL' : 'SQLite Local File',
+    dbPath: process.env.DATABASE_URL ? (process.env.DATABASE_URL.split('@')[1] || 'neon.tech') : 'local.db'
   }));
 }
 
