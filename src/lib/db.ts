@@ -1,14 +1,33 @@
 import { createClient } from '@libsql/client';
 import { neon } from '@neondatabase/serverless';
 
-const url = process.env.TURSO_URL || 'file:local.db';
-const authToken = process.env.TURSO_TOKEN;
+let sqliteClient: any = null;
 
-// SQLite Client (Local fallback)
-const sqliteClient = createClient({
-  url,
-  authToken,
-});
+// Lazy initialize the SQLite/Turso client to prevent serverless load crashes
+function getSqliteClient() {
+  if (!sqliteClient) {
+    const url = process.env.TURSO_URL;
+    const token = process.env.TURSO_TOKEN;
+
+    if (!url) {
+      // If running in serverless (Netlify/Vercel) without a database URL, raise clear warning
+      if (process.env.NETLIFY || process.env.VERCEL || process.env.NODE_ENV === 'production') {
+        throw new Error('Database URL is missing. Please configure TURSO_URL or DATABASE_URL in Netlify Settings.');
+      }
+      // Local development fallback
+      sqliteClient = createClient({
+        url: 'file:local.db',
+      });
+    } else {
+      // Remote Turso Cloud SQLite
+      sqliteClient = createClient({
+        url,
+        authToken: token,
+      });
+    }
+  }
+  return sqliteClient;
+}
 
 // Unified Database execution wrapper supporting SQLite and Neon PostgreSQL
 export const db = {
@@ -45,11 +64,12 @@ export const db = {
       // Return unified rows array
       return { rows: result };
     } else {
-      // Fallback to SQLite local file execution
+      // Lazy load SQLite/Turso client
+      const client = getSqliteClient();
       if (typeof queryInput === 'string') {
-        return sqliteClient.execute(queryInput);
+        return client.execute(queryInput);
       } else {
-        return sqliteClient.execute({ sql, args });
+        return client.execute({ sql, args });
       }
     }
   }
