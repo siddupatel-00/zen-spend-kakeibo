@@ -29,8 +29,7 @@
 }
 
 [data-theme="light"] {
-  --background: #f8fafc;
-  --bg-gradient: radial-gradient(circle at 50% 0%, #e2e8f0 0%, #f8fafc 80%);
+  --background: #ffffff;
   --foreground: #0f172a;
   --panel-bg: rgba(255, 255, 255, 0.85);
   --border-color: rgba(0, 0, 0, 0.08);
@@ -45,7 +44,6 @@
 }
 
 body {
-  background: var(--bg-gradient);
   background-color: var(--background);
   color: var(--text-primary);
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
